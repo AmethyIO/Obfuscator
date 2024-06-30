@@ -24,3 +24,7 @@ webpack-stats.json
 
 # Ignore .env.
 .env
+
+v2/test.js
+v2/test.jsx
+v2/source.js
