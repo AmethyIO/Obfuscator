@@ -1,22 +1,170 @@
-// ==UserScript==
-// @name         Sanitarium (free)
-// @version      2024-06-13.alpha1
-// @author       Sanitarium Development Team
-// @match        *://starve.io/*
-// @run-at       document-start
-// @grant        unsafeWindow
-// @webRequest   [{"selector":"*https://cadmus.script.ac/d1r100yi8pmbig/script.js*", "action": "cancel"}]
-// ==/UserScript==
-
 /******/ (function() { // webpackBootstrap
 /******/ 	"use strict";
 var __webpack_exports__ = {};
 
-;// CONCATENATED MODULE: ./src/constants/env.constants.ts
-var DEV = "production" === 'development';
-var PROD = (/* unused pure expression or super */ null && ("production" === 'production'));
+;// CONCATENATED MODULE: ./src/core/utils/global.ts
+var getGlobalObject = function (context) { return context && context.Math === context.Math && context; };
+var global_globalObject = getGlobalObject(typeof self === 'object' && self) ||
+    getGlobalObject(typeof window === 'object' && window) ||
+    getGlobalObject(typeof globalThis === 'object' && globalThis) ||
+    window;
 
-;// CONCATENATED MODULE: ./src/constants/game.constants.ts
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/array.ts
+
+function isArray(array) {
+    return global_globalObject.Array.isArray(array);
+}
+
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/media.ts
+
+var mediaStream;
+function getLocalStream() {
+    var _a;
+    if (mediaStream)
+        return mediaStream;
+    globalObject.navigator.mediaDevices
+        .getUserMedia((_a = {}, _a['video'] = false, _a['audio'] = true, _a))
+        .then(function (stream) {
+        mediaStream = stream;
+    })
+        .catch(function (err) {
+        console.error("Media error: ".concat(err));
+    });
+}
+
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/number.ts
+function getReadableTime(seconds) {
+    if (seconds < 1)
+        return "".concat((seconds * 60).toFixed(0), "s");
+    return "".concat(seconds.toFixed(2), "m");
+}
+
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/object.ts
+function getObjectTypeName(obj) {
+    if (obj === null)
+        return 'null';
+    if (obj === undefined)
+        return 'undefined';
+    if (typeof obj === 'object' && obj.constructor) {
+        return obj.constructor.name;
+    }
+    else if (typeof obj === 'function') {
+        return obj.name;
+    }
+    else if (typeof obj === 'object') {
+        return 'Object';
+    }
+    return typeof obj;
+}
+
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/timeout.ts
+
+function sleep(ms) {
+    return new global_globalObject.Promise(function (resolve) { return global_globalObject.setTimeout(resolve, ms); });
+}
+function throttle(func, limit) {
+    var lastFunc;
+    var lastRan;
+    return function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var context = this;
+        if (!lastRan) {
+            func.apply(context, args);
+            lastRan = globalObject.Date.now();
+        }
+        else {
+            globalObject.clearTimeout(lastFunc);
+            // @ts-ignore
+            lastFunc = globalObject.setTimeout(function () {
+                if ((globalObject.Date.now() - lastRan) >= limit) {
+                    func.apply(context, args);
+                    lastRan = globalObject.Date.now();
+                }
+            }, limit - (Date.now() - lastRan));
+        }
+    };
+}
+
+;// CONCATENATED MODULE: ./src/core/utils/polyfills/index.ts
+
+
+
+
+
+
+
+;// CONCATENATED MODULE: ./src/core/utils/index.ts
+
+// export * from './canvas';
+
+
+;// CONCATENATED MODULE: ./src/core/modules/memory.ts
+
+var memory = new global_globalObject.Map();
+var get = function (key) { var _a; return (_a = memory.get(key)) !== null && _a !== void 0 ? _a : undefined; };
+var set = function (key, value) { return memory.set(key, value); };
+var remove = function (key) { return memory.delete(key); };
+
+;// CONCATENATED MODULE: ./src/core/modules/draw.ts
+
+
+var can = undefined;
+var ctx = undefined;
+function initializeCanvas() {
+    if (!can || typeof can === 'undefined')
+        can = global_globalObject.document.getElementById('game_canvas');
+    ctx = can.getContext('2d');
+    return !!can;
+}
+var last = 0;
+var delta = 0;
+var draw_frames = [];
+var drawFns = [];
+function draw(timestamp) {
+    if (timestamp === void 0) { timestamp = 0; }
+    var ready = get('READY');
+    if (!ready)
+        return;
+    global_globalObject.requestAnimationFrame(draw);
+    var ms = timestamp - last;
+    draw_frames.push(ms);
+    if (draw_frames.length > 100)
+        draw_frames.shift();
+    delta = ms / 1000;
+    delta = delta > 1 ? 1 : delta;
+    last = timestamp;
+    for (var _i = 0, drawFns_1 = drawFns; _i < drawFns_1.length; _i++) {
+        var render = drawFns_1[_i];
+        render(ctx, delta);
+    }
+}
+;
+function addToDraw(renderFunction) {
+    if (!drawFns.includes(renderFunction))
+        drawFns.push(renderFunction);
+}
+;
+function removeFromDraw(renderFunction) {
+    var index = drawFns.indexOf(renderFunction);
+    if (index !== -1)
+        drawFns.splice(index, 1);
+}
+;
+function getFramesPerSecond() {
+    return global_globalObject.Math.round(1000 / (draw_frames.reduce(function (a, b) { return a + b; }, 0) / draw_frames.length));
+}
+
+;// CONCATENATED MODULE: ./src/core/modules/index.ts
+
+
+// export * from './devtools-detector.module';
+
+;// CONCATENATED MODULE: ./src/core/constants/game.ts
+var _a, _b, _c, _d, _e, _f, _g;
+// inventory items
 var INVENTORY_ID = {
     'SWORD': 0,
     'PICK': 1,
@@ -285,6 +433,7 @@ var INVENTORY_ID = {
     'ⲆᐃᐃⲆᐃ': 239,
     'FUR_MAMMOTH': 240
 };
+// units
 var UNITS = {
     'PLAYERS': 0,
     'FIRE': 1,
@@ -377,6 +526,7 @@ var UNITS = {
     'SPELL': 91,
     'FRUIT': 100
 };
+// states
 var STATES = {
     'DELETE': 1,
     'HURT': 2,
@@ -388,9 +538,70 @@ var STATES = {
     'HEAL': 128,
     'WEB': 256
 };
+// useful for extractor infos
+var extras = [
+    UNITS.EXTRACTOR_MACHINE_GOLD,
+    UNITS.EXTRACTOR_MACHINE_STONE,
+    UNITS.EXTRACTOR_MACHINE_DIAMOND,
+    UNITS.EXTRACTOR_MACHINE_REIDITE,
+    UNITS.EXTRACTOR_MACHINE_AMETHYST
+];
+var extras_length = extras.length;
+function getExtractorTypeName(type) {
+    switch (type) {
+        case UNITS.EXTRACTOR_MACHINE_GOLD: return 'Gold';
+        case UNITS.EXTRACTOR_MACHINE_STONE: return 'Stone';
+        case UNITS.EXTRACTOR_MACHINE_DIAMOND: return 'Diamond';
+        case UNITS.EXTRACTOR_MACHINE_REIDITE: return 'Reidite';
+        case UNITS.EXTRACTOR_MACHINE_AMETHYST: return 'Amethyst';
+    }
+    return 'Unknown';
+}
+// informations for drawers
+var infos = (_a = {},
+    _a[UNITS.TOTEM] = (_b = {},
+        _b['strings'] = [
+            '$locked',
+            'Owner: $owner',
+            'People: $people',
+        ],
+        _b),
+    _a['extractor'] = (_c = {},
+        _c['strings'] = [
+            'Wood: $input',
+            '$type: $output',
+            'Est. time: $time',
+        ],
+        _c),
+    _a[UNITS.PLAYERS] = (_d = {},
+        _d['strings'] = [
+            'PID: $pid',
+            'Info: $info'
+        ],
+        _d),
+    _a[UNITS.WINDMILL] = (_e = {},
+        _e['strings'] = [
+            'Wheat: $input',
+            'Flour: $output',
+            'Est. time: $time',
+        ],
+        _e),
+    _a[UNITS.BREAD_OVEN] = (_f = {},
+        _f['strings'] = [
+            'Wood: $input',
+            'Flour: $input2',
+            'Bread: $output',
+            'Est. time: $time',
+        ],
+        _f),
+    _a[UNITS.EMERALD_MACHINE] = (_g = {},
+        _g['strings'] = [
+            '$owner',
+        ],
+        _g),
+    _a);
 
 ;// CONCATENATED MODULE: ./src/core/index.ts
-
 
 
 function hook(hooks) {
@@ -404,7 +615,7 @@ function hook(hooks) {
         if (hook_1 && isArray(hook_1)) {
             var name_1 = hook_1[0], obj = hook_1[1];
             try {
-                var ready = !!globalObject.Object.defineProperty(globalObject.Object.prototype, name_1, obj);
+                var ready = !!global_globalObject.Object.defineProperty(global_globalObject.Object.prototype, name_1, obj);
                 ready && hooked++;
             }
             catch (e) {
@@ -414,8 +625,6 @@ function hook(hooks) {
     }
     if (hooked === length && !done)
         done = true;
-    if (DEV && done)
-        globalObject.console.log("Successfully hooked ".concat(length, " properties"));
     return done;
 }
 var VARS = {};
@@ -426,7 +635,7 @@ VARS.MOUSE = undefined;
 VARS.CLIENT = undefined;
 function setHookedVar(property, value) {
     if (!(property in VARS))
-        throw new globalObject.ReferenceError("Cannot set var '".concat(property, "': var not found"));
+        throw new global_globalObject.ReferenceError("Cannot set var '".concat(property, "': var not found"));
     VARS[property] = value;
     return true;
 }
@@ -436,49 +645,32 @@ function getVarProperty(hookedVar, defineAs, index) {
     if (index === void 0) { index = 1; }
     var ready = (_a = get('READY')) !== null && _a !== void 0 ? _a : false;
     if (!ready)
-        throw new globalObject.ReferenceError('Game is not ready yet');
+        throw new global_globalObject.ReferenceError('Game is not ready yet');
     if (typeof VARS[hookedVar] === 'undefined' || !(hookedVar in VARS))
-        throw new globalObject.ReferenceError("Cannot get var '".concat(hookedVar, "': ").concat(!(hookedVar in VARS) ? 'var not found' : 'var not defined yet'));
-    var prop = '';
-    var counter = 0;
-    for (var property in VARS[hookedVar]) {
-        counter++;
-        if (counter === index) {
-            if ((typeof defineAs === 'string' && !(defineAs in PROPS)) || PROPS[defineAs] !== property)
+        throw new global_globalObject.ReferenceError("Cannot get var '".concat(hookedVar, "': ").concat(!(hookedVar in VARS) ? 'var not found' : 'var not defined yet'));
+    if (!(defineAs in PROPS))
+        PROPS[defineAs] = undefined;
+    if (typeof PROPS[defineAs] === 'undefined') {
+        var prop = '';
+        var counter = 0;
+        for (var property in VARS[hookedVar]) {
+            counter++;
+            if (counter === index) {
                 PROPS[defineAs] = property;
-            prop = property;
-            break;
+                prop = property;
+                break;
+            }
         }
+        return prop;
     }
-    return prop;
+    return PROPS[defineAs];
 }
-// export const OBJECTS_PROPS: StrAny = {};
-// export function getObjectProperty(object: any, defineAs: string, index: number = 1): string {
-//   const ready = get<boolean>('READY');
-//   if (!ready) throw new globalObject.ReferenceError('Game is not ready yet');
-//   let prop: string | undefined = undefined;
-//   let counter: number = 0;
-//   for (const property in object) {
-//     counter++;
-//     if (counter === index) {
-//       prop = property;
-//       break;
-//     }
-//   }
-//   if (typeof prop === 'string') {
-//     if (!(object in OBJECTS_PROPS))
-//       OBJECTS_PROPS[object] = {}
-//     const obj = OBJECTS_PROPS[object];
-//     if (!(defineAs in obj) || obj[defineAs] !== prop)
-//       obj[defineAs] = prop;
-//   }
-// }
 var OBJ_PROPS = {};
 function getObjectProperty(obj, defineAs, index) {
     if (index === void 0) { index = 1; }
     var ready = get('READY');
     if (!ready)
-        throw new globalObject.ReferenceError('Game is not ready yet');
+        throw new global_globalObject.ReferenceError('Game is not ready yet');
     var objName = getObjectTypeName(obj);
     if (!(objName in OBJ_PROPS))
         OBJ_PROPS[objName] = {};
@@ -498,88 +690,56 @@ function getObjectProperty(obj, defineAs, index) {
     }
     return o[defineAs];
 }
-// temp
-var getCameraPosition = function () {
-    var camx = 0;
-    var camy = 0;
-    var ready = get('READY');
-    if (!VARS.USER[PROPS.ALIVE] || !ready)
-        return [camx, camy];
-    for (var prop1 in VARS.USER) {
-        for (var prop2 in VARS.USER[prop1]) {
-            switch (prop2) {
-                case "x":
-                    camx = VARS.USER[prop1][prop2];
-                    break;
-                case "y":
-                    camy = VARS.USER[prop1][prop2];
-                    break;
-            }
-        }
-    }
-    return [camx, camy];
-};
 
-;// CONCATENATED MODULE: ./src/constants/hooks.constants.ts
-var _a, _b, _c, _d, _e, _f, _g;
+;// CONCATENATED MODULE: ./src/core/constants/hooks.ts
+var hooks_a, hooks_b, hooks_c, hooks_d, hooks_e, hooks_f, hooks_g;
 
-var BASE = Symbol();
+
+var BASE = global_globalObject.Symbol();
 var BASE_HOOKS = [
-    ['IDLE', (_a = {},
-            _a['get'] = function () { return this[BASE]; },
-            _a['set'] = function (data) {
+    ['IDLE', (hooks_a = {},
+            hooks_a['get'] = function () { return this[BASE]; },
+            hooks_a['set'] = function (data) {
                 this[BASE] = data;
                 setHookedVar('MOUSE', this);
             },
-            _a)],
-    ['time', (_b = {},
-            _b['get'] = function () { return this[BASE]; },
-            _b['set'] = function (data) {
+            hooks_a)],
+    ['time', (hooks_b = {},
+            hooks_b['get'] = function () { return this[BASE]; },
+            hooks_b['set'] = function (data) {
                 this[BASE] = data;
                 setHookedVar('WORLD', this);
             },
-            _b)],
-    ['options', (_c = {},
-            _c['get'] = function () { return this[BASE]; },
-            _c['set'] = function (data) {
+            hooks_b)],
+    ['options', (hooks_c = {},
+            hooks_c['get'] = function () { return this[BASE]; },
+            hooks_c['set'] = function (data) {
                 this[BASE] = data;
                 setHookedVar('GAME', this);
             },
-            _c)],
-    ['connect', (_d = {},
-            _d['get'] = function () { return this[BASE]; },
-            _d['set'] = function (data) {
+            hooks_c)],
+    ['connect', (hooks_d = {},
+            hooks_d['get'] = function () { return this[BASE]; },
+            hooks_d['set'] = function (data) {
                 this[BASE] = data;
                 setHookedVar('CLIENT', this);
             },
-            _d)],
-    ['reconnect', (_e = {},
-            _e['get'] = function () { return this[BASE]; },
-            _e['set'] = function (data) {
+            hooks_d)],
+    ['reconnect', (hooks_e = {},
+            hooks_e['get'] = function () { return this[BASE]; },
+            hooks_e['set'] = function (data) {
                 this[BASE] = data;
                 setHookedVar('USER', this);
             },
-            _e)],
-    ['opacity', (_f = {}, _f['get'] = function () { return 0.25; }, _f)],
-    // TODO: zoom
-    // ['width', {
-    //   ['get']: function() { return 3840 },
-    //   ['set']: function(data: any) {
-    //     (this as any)[BASE] = data;
-    //   }
-    // }],
-    // ['height', {
-    //   ['get']: function() { return 2160 },
-    //   ['set']: function(data: any) {
-    //     (this as any)[BASE] = data;
-    //   }
-    // }],
-    ['isBlocked', (_g = {}, _g['get'] = function () { return false; }, _g)], // Ads again..
+            hooks_e)],
+    ['opacity', (hooks_f = {}, hooks_f['get'] = function () { return 0.25; }, hooks_f)],
+    ['isBlocked', (hooks_g = {}, hooks_g['get'] = function () { return false; }, hooks_g)], // Ads again..
 ];
 var PROP_HOOKS = [
     // User hooks
     ['USER', 'ID', 16],
     ['USER', 'ALIVE', 11],
+    ['USER', 'GHOST', 65],
     ['USER', 'CAMERA', 28],
     ['USER', 'INVENTORY', 35],
     // World hooks
@@ -590,156 +750,122 @@ var PROP_HOOKS = [
     ['WORLD', 'FAST_UNITS', 7],
     // NetworkClient hooks
     ['CLIENT', 'SOCKET', 1],
-    // Game hooks
-    ['GAME', 'CHEST_BUTTONS', 46],
 ];
-
-;// CONCATENATED MODULE: ./src/constants/index.ts
-
-
-
-
-;// CONCATENATED MODULE: ./src/utils/game.utils.ts
-
-var extras = [
-    UNITS.EXTRACTOR_MACHINE_STONE,
-    UNITS.EXTRACTOR_MACHINE_GOLD,
-    UNITS.EXTRACTOR_MACHINE_DIAMOND,
-    UNITS.EXTRACTOR_MACHINE_AMETHYST,
-    UNITS.EXTRACTOR_MACHINE_REIDITE
-];
-var extras_length = extras.length;
-function getExtractorTypeName(type) {
-    switch (type) {
-        case UNITS.EXTRACTOR_MACHINE_GOLD: return 'Gold';
-        case UNITS.EXTRACTOR_MACHINE_STONE: return 'Stone';
-        case UNITS.EXTRACTOR_MACHINE_DIAMOND: return 'Diamond';
-        case UNITS.EXTRACTOR_MACHINE_REIDITE: return 'Reidite';
-        case UNITS.EXTRACTOR_MACHINE_AMETHYST: return 'Amethyst';
-    }
-    return 'Unknown';
-}
-
-;// CONCATENATED MODULE: ./src/utils/number.utils.ts
-function getReadableTime(seconds) {
-    if (seconds < 1)
-        return "".concat((seconds * 60).toFixed(0), "s");
-    return "".concat(seconds.toFixed(2), "m");
-}
-
-;// CONCATENATED MODULE: ./src/utils/global.utils.ts
-var getGlobalObject = function (context) { return context && context.Math === context.Math && context; };
-var globalObject = getGlobalObject(typeof self === 'object' && self) ||
-    getGlobalObject(typeof window === 'object' && window) ||
-    getGlobalObject(typeof globalThis === 'object' && globalThis) ||
-    window;
-function isArray(array) {
-    return !!globalObject.Array.isArray(array);
-}
-function getObjectTypeName(obj) {
-    if (obj === null)
-        return 'null';
-    if (obj === undefined)
-        return 'undefined';
-    if (typeof obj === 'object' && obj.constructor) {
-        return obj.constructor.name;
-    }
-    else if (typeof obj === 'function') {
-        return obj.name;
-    }
-    else if (typeof obj === 'object') {
-        return 'Object';
-    }
-    return typeof obj;
-}
-
-;// CONCATENATED MODULE: ./src/utils/timeout.utils.ts
-
-function sleep(ms) {
-    return new globalObject.Promise(function (resolve) { return globalObject.setTimeout(resolve, ms); });
-}
-
-;// CONCATENATED MODULE: ./src/utils/index.ts
-// SOON:
-// export * from './vector.utils';
-
-
-
-
-
-;// CONCATENATED MODULE: ./src/modules/memory.module.ts
-
-var memory = new globalObject.Map();
-var get = function (key) { var _a; return (_a = memory.get(key)) !== null && _a !== void 0 ? _a : undefined; };
-var set = function (key, value) {
-    memory.set(key, value);
-};
-var remove = function (key) {
-    memory.delete(key);
-};
-
-;// CONCATENATED MODULE: ./src/modules/draw.module.ts
-
-
-var last = 0;
-var delta = 0;
-var draw_module_frames = [];
-var drawFns = [];
-function draw(timestamp) {
-    if (timestamp === void 0) { timestamp = 0; }
-    var ready = get('READY');
-    if (!ready)
-        return;
-    globalObject.requestAnimationFrame(draw);
-    var ms = timestamp - last;
-    draw_module_frames.push(ms);
-    if (draw_module_frames.length > 100)
-        draw_module_frames.shift();
-    delta = ms / 1000;
-    delta = delta > 1 ? 1 : delta;
-    last = timestamp;
-    var context = get('CONTEXT');
-    for (var _i = 0, drawFns_1 = drawFns; _i < drawFns_1.length; _i++) {
-        var render = drawFns_1[_i];
-        render(context, delta);
+function hookAllProperties() {
+    var length = PROP_HOOKS.length;
+    for (var index = 0; index < length; index++) {
+        var hookProp = PROP_HOOKS[index];
+        if (hookProp && isArray(hookProp)) {
+            var variable = hookProp[0], property = hookProp[1], address = hookProp[2];
+            var hooked = getVarProperty(variable, property, address);
+            if (!!hooked)
+                console.log("found ".concat(variable, ".").concat(property, " in address ").concat(address, " (").concat(hooked, ")"));
+        }
     }
 }
-;
-function addToDraw(renderFunction) {
-    if (!drawFns.includes(renderFunction))
-        drawFns.push(renderFunction);
-}
-;
-function removeFromDraw(renderFunction) {
-    var index = drawFns.indexOf(renderFunction);
-    if (index !== -1)
-        drawFns.splice(index, 1);
-}
-;
-var getFPS = function () { return globalObject.Math.round(1000 / (draw_module_frames.reduce(function (a, b) { return a + b; }, 0) / draw_module_frames.length)); };
 
-;// CONCATENATED MODULE: ./src/modules/index.ts
+;// CONCATENATED MODULE: ./src/core/constants/icons.ts
 
-
-
-;// CONCATENATED MODULE: ./src/drawers/base.drawer.ts
-
-function drawBase(context, delta) {
-    // console.log(delta);
+function createMicrophone() {
+    var canvas = global_globalObject.document.createElement('canvas');
+    var context = canvas.getContext('2d');
     context.save();
-    // Draw FPS
-    var fps = getFPS();
-    var fpsT = "FPS: ".concat(fps);
-    context.font = "16px Baloo Paaji";
-    context.fillStyle = "#fff";
-    context.lineWidth = 4;
-    context.strokeText(fpsT, 10, 50);
-    context.fillText(fpsT, 10, 50);
+    context.miterLimit = 4;
+    context.fillStyle = '#fff';
+    context.scale(0.10714285714285715, 0.10714285714285715);
+    context.scale(1.3333333333333333, 1.3333333333333333);
+    context.save();
+    context.translate(0, 560);
+    context.scale(0.1, -0.1);
+    context.save();
+    context.fillStyle = '#fff';
+    context.beginPath();
+    context.moveTo(2676, 4834);
+    context.bezierCurveTo(2471, 4784, 2296, 4604, 2240, 4384);
+    context.bezierCurveTo(2221, 4310, 2220, 4270, 2220, 3520);
+    context.bezierCurveTo(2220, 2770, 2221, 2730, 2240, 2656);
+    context.bezierCurveTo(2298, 2430, 2481, 2244, 2688, 2201);
+    context.bezierCurveTo(2877, 2162, 3059, 2218, 3200, 2359);
+    context.bezierCurveTo(3288, 2447, 3340, 2538, 3370, 2656);
+    context.bezierCurveTo(3389, 2730, 3390, 2770, 3390, 3520);
+    context.bezierCurveTo(3390, 4270, 3389, 4310, 3370, 4384);
+    context.bezierCurveTo(3288, 4706, 2978, 4907, 2676, 4834);
+    context.closePath();
+    context.fill();
+    context.stroke();
     context.restore();
+    context.save();
+    context.fillStyle = '#fff';
+    context.beginPath();
+    context.moveTo(1514, 2625);
+    context.bezierCurveTo(1556, 2024, 1954, 1525, 2505, 1385);
+    context.lineTo(2595, 1362);
+    context.lineTo(2598, 1056);
+    context.lineTo(2600, 750);
+    context.lineTo(2805, 750);
+    context.lineTo(3010, 750);
+    context.lineTo(3012, 1056);
+    context.lineTo(3015, 1362);
+    context.lineTo(3105, 1385);
+    context.bezierCurveTo(3539, 1496, 3882, 1827, 4029, 2278);
+    context.bezierCurveTo(4066, 2391, 4088, 2502, 4096, 2625);
+    context.lineTo(4103, 2720);
+    context.lineTo(3891, 2720);
+    context.lineTo(3680, 2720);
+    context.lineTo(3680, 2658);
+    context.bezierCurveTo(3679, 2518, 3618, 2331, 3528, 2192);
+    context.bezierCurveTo(3267, 1791, 2756, 1671, 2360, 1918);
+    context.bezierCurveTo(2231, 1998, 2098, 2145, 2028, 2285);
+    context.bezierCurveTo(1972, 2396, 1930, 2561, 1930, 2666);
+    context.lineTo(1930, 2720);
+    context.lineTo(1719, 2720);
+    context.lineTo(1507, 2720);
+    context.lineTo(1514, 2625);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+    context.restore();
+    context.restore();
+    return canvas;
 }
-;
+var ICON_MICROPHONE = createMicrophone();
 
-;// CONCATENATED MODULE: ./src/hooks/players.hook.ts
+;// CONCATENATED MODULE: ./src/core/constants/index.ts
+
+
+
+
+;// CONCATENATED MODULE: ./src/core/hooks/camera.ts
+// TODO: find way to hook it normal than atm
+
+
+var camx = -1;
+var camy = -1;
+function getCameraPosition() {
+    return [camx, camy];
+}
+function updateCameraPosition() {
+    if (!VARS.USER[PROPS.ALIVE] || (VARS.CLIENT[PROPS.SOCKET] && VARS.CLIENT[PROPS.SOCKET]['readyState'] !== global_globalObject.WebSocket.OPEN)) {
+        if (camx !== 0 || camy !== 0)
+            camx = camy = 0;
+        return;
+    }
+    for (var prop1 in VARS.USER) {
+        for (var prop2 in VARS.USER[prop1]) {
+            switch (prop2) {
+                case 'x':
+                    camx = VARS.USER[prop1][prop2];
+                    break;
+                case 'y':
+                    camy = VARS.USER[prop1][prop2];
+                    break;
+            }
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/core/hooks/players.ts
 
 
 
@@ -776,60 +902,18 @@ function updatePlayers() {
     }
 }
 
-;// CONCATENATED MODULE: ./src/hooks/index.ts
-
-
-;// CONCATENATED MODULE: ./src/drawers/info.drawer.ts
-var info_drawer_a, info_drawer_b, info_drawer_c, info_drawer_d, info_drawer_e, info_drawer_f, info_drawer_g;
+;// CONCATENATED MODULE: ./src/core/hooks/index.ts
+// export * from './ping.hook';
 
 
 
+;// CONCATENATED MODULE: ./src/core/drawers/info.ts
 
-var infos = (info_drawer_a = {},
-    info_drawer_a[UNITS.TOTEM] = (info_drawer_b = {},
-        info_drawer_b['strings'] = [
-            "Owner: [owner]",
-            "Locked: [locked]",
-            "People: [people]",
-        ],
-        info_drawer_b),
-    info_drawer_a[UNITS.PLAYERS] = (info_drawer_c = {},
-        info_drawer_c['strings'] = [
-            "PID: [pid]",
-            "Info: [info]"
-        ],
-        info_drawer_c),
-    info_drawer_a[UNITS.BREAD_OVEN] = (info_drawer_d = {},
-        info_drawer_d['strings'] = [
-            "Owner: [owner]",
-            "Wood: [input]",
-            "Flour: [input2]",
-            "Bread: [output]",
-            "Est. time: [time]",
-        ],
-        info_drawer_d),
-    info_drawer_a[UNITS.EMERALD_MACHINE] = (info_drawer_e = {},
-        info_drawer_e['strings'] = [
-            "Owner: [owner]"
-        ],
-        info_drawer_e),
-    info_drawer_a[UNITS.WINDMILL] = (info_drawer_f = {},
-        info_drawer_f['strings'] = [
-            "Owner: [owner]",
-            "Wheat: [input]",
-            "Flour: [output]",
-            "Est. time: [time]",
-        ],
-        info_drawer_f),
-    info_drawer_a['extractor'] = (info_drawer_g = {},
-        info_drawer_g['strings'] = [
-            "Owner: [owner]",
-            "Wood: [input]",
-            "[type]: [output]",
-            "Est. time: [time]",
-        ],
-        info_drawer_g),
-    info_drawer_a);
+
+
+
+// temp
+var USING_VOICE = true;
 function drawPlayerInfo(context) {
     if (!VARS.USER[PROPS.ALIVE])
         return;
@@ -861,6 +945,14 @@ function drawPlayerInfo(context) {
                 var y = player[getObjectProperty(player, 'UNIT_Y', 5)];
                 var pid = player[getObjectProperty(player, 'UNIT_PID', 2)];
                 var info = player[getObjectProperty(player, 'UNIT_INFO', 9)];
+                // Badges, voice chat indicator
+                context.save();
+                // Voice bg
+                if (USING_VOICE) {
+                    context.globalAlpha = 0.45;
+                    context.drawImage(ICON_MICROPHONE, (x - 25) + cam_x, (y - (ICON_MICROPHONE.height - 25)) + cam_y, 166, 70);
+                }
+                context.restore();
                 // Drawing multiple infos
                 var text_y = 0;
                 var text = infos[UNITS.PLAYERS]['strings'];
@@ -868,8 +960,8 @@ function drawPlayerInfo(context) {
                 if (text_length > 0) {
                     for (var j = 0; j < text_length; j++) {
                         var t = text[j]
-                            .replace('[pid]', pid)
-                            .replace('[info]', info);
+                            .replace('$pid', pid)
+                            .replace('$info', info);
                         context.strokeText(t, x + cam_x, y + cam_y + text_y);
                         context.fillText(t, x + cam_x, y + cam_y + text_y);
                         text_y += 22;
@@ -905,10 +997,8 @@ function drawExtractorInfo(context) {
             if (extractor) {
                 var x = extractor[getObjectProperty(extractor, 'UNIT_X', 4)];
                 var y = extractor[getObjectProperty(extractor, 'UNIT_Y', 5)];
-                var pid = extractor[getObjectProperty(extractor, 'UNIT_PID', 2)];
                 var type = extractor[getObjectProperty(extractor, 'UNIT_TYPE', 1)];
                 var info = extractor[getObjectProperty(extractor, 'UNIT_INFO', 9)];
-                var owner = getPlayerByPid(pid);
                 var input = info & 0xFF;
                 var output = (info & 0xFF00) >> 8;
                 var time = getReadableTime(input > 0 ? (((input / 2) * 10) / 60) : 0);
@@ -919,11 +1009,10 @@ function drawExtractorInfo(context) {
                 if (text_length > 0) {
                     for (var j_1 = 0; j_1 < text_length; j_1++) {
                         var t = text[j_1]
-                            .replace('[owner]', owner ? owner.nickname || 'Unknown' : 'Unknown')
-                            .replace('[type]', getExtractorTypeName(type))
-                            .replace('[time]', time)
-                            .replace('[input]', 'x' + input)
-                            .replace('[output]', 'x' + output);
+                            .replace('$type', getExtractorTypeName(type))
+                            .replace('$time', time)
+                            .replace('$input', 'x' + input)
+                            .replace('$output', 'x' + output);
                         context.strokeText(t, x + cam_x, y + cam_y + text_y);
                         context.fillText(t, x + cam_x, y + cam_y + text_y);
                         text_y += 16;
@@ -958,17 +1047,18 @@ function drawTotemInfo(context) {
             var y = totem[getObjectProperty(totem, 'UNIT_Y', 5)];
             var pid = totem[getObjectProperty(totem, 'UNIT_PID', 2)];
             var info = totem[getObjectProperty(totem, 'UNIT_INFO', 9)];
-            var owner = getPlayerByPid(pid);
             var locked = info >= 16;
+            var owner = getPlayerByPid(pid);
+            var count = locked ? info % 16 : info;
             var text_y = 0;
             var text = infos[UNITS.TOTEM]['strings'];
             var text_length = text.length;
             if (text_length > 0) {
                 for (var j = 0; j < text_length; j++) {
                     var t = text[j]
-                        .replace('[owner]', owner ? owner.nickname || 'Unknown' : 'Unknown')
-                        .replace('[locked]', locked ? "yes" : "no")
-                        .replace('[people]', locked ? info % 16 : info);
+                        .replace('$owner', owner ? owner.nickname || 'Unknown' : 'Unknown')
+                        .replace('$people', count)
+                        .replace('$locked', locked ? "🔒" : "🔓");
                     context.strokeText(t, x + cam_x, y + cam_y + text_y);
                     context.fillText(t, x + cam_x, y + cam_y + text_y);
                     text_y += 16;
@@ -1008,7 +1098,7 @@ function drawEmeraldInfo(context) {
             if (text_length > 0) {
                 for (var j = 0; j < text_length; j++) {
                     var t = text[j]
-                        .replace('[owner]', owner ? owner.nickname || 'Unknown' : 'Unknown');
+                        .replace('$owner', owner ? owner.nickname || 'Unknown' : 'Unknown');
                     context.strokeText(t, x + cam_x, y + cam_y + text_y);
                     context.fillText(t, x + cam_x, y + cam_y + text_y);
                     text_y += 16;
@@ -1042,9 +1132,7 @@ function drawWindmillInfo(context) {
         if (windmill) {
             var x = windmill[getObjectProperty(windmill, 'UNIT_X', 4)];
             var y = windmill[getObjectProperty(windmill, 'UNIT_Y', 5)];
-            var pid = windmill[getObjectProperty(windmill, 'UNIT_PID', 2)];
             var info = windmill[getObjectProperty(windmill, 'UNIT_INFO', 9)];
-            var owner = getPlayerByPid(pid);
             var input = info & 0xFF;
             var output = (info & 0xFF00) >> 8;
             var time = getReadableTime(input > 0 ? (((input / 2) * 10) / 60) : 0);
@@ -1054,10 +1142,9 @@ function drawWindmillInfo(context) {
             if (text_length > 0) {
                 for (var j = 0; j < text_length; j++) {
                     var t = text[j]
-                        .replace('[owner]', owner ? owner.nickname || 'Unknown' : 'Unknown')
-                        .replace('[time]', time)
-                        .replace('[input]', 'x' + input)
-                        .replace('[output]', 'x' + output);
+                        .replace('$time', time)
+                        .replace('$input', 'x' + input)
+                        .replace('$output', 'x' + output);
                     context.strokeText(t, x + cam_x, y + cam_y + text_y);
                     context.fillText(t, x + cam_x, y + cam_y + text_y);
                     text_y += 16;
@@ -1091,24 +1178,21 @@ function drawOvenInfo(context) {
         if (oven) {
             var x = oven[getObjectProperty(oven, 'UNIT_X', 4)];
             var y = oven[getObjectProperty(oven, 'UNIT_Y', 5)];
-            var pid = oven[getObjectProperty(oven, 'UNIT_PID', 2)];
             var info = oven[getObjectProperty(oven, 'UNIT_INFO', 9)];
-            var owner = getPlayerByPid(pid);
             var input = info & 0x1F;
             var input2 = (info & 0x3E0) >> 5;
             var output = (info & 0x7C00) >> 10;
-            var time = getReadableTime(input > 0 ? (((input / 2) * 10) / 60) : 0);
+            var time = getReadableTime(input2 > 0 ? (((input2 / 2) * 10) / 60) : 0);
             var text_y = 0;
             var text = infos[UNITS.BREAD_OVEN]['strings'];
             var text_length = text.length;
             if (text_length > 0) {
                 for (var j = 0; j < text_length; j++) {
                     var t = text[j]
-                        .replace('[owner]', owner ? owner.nickname || 'Unknown' : 'Unknown')
-                        .replace('[time]', time)
-                        .replace('[input]', 'x' + input)
-                        .replace('[input2]', 'x' + input2)
-                        .replace('[output]', 'x' + output);
+                        .replace('$time', time)
+                        .replace('$input', 'x' + input)
+                        .replace('$input2', 'x' + input2)
+                        .replace('$output', 'x' + output);
                     context.strokeText(t, x + cam_x, y + cam_y + text_y);
                     context.fillText(t, x + cam_x, y + cam_y + text_y);
                     text_y += 16;
@@ -1119,17 +1203,150 @@ function drawOvenInfo(context) {
     context.restore();
 }
 
-;// CONCATENATED MODULE: ./src/drawers/hooks.drawer.ts
+;// CONCATENATED MODULE: ./src/core/drawers/main.ts
+
+// import { globalObject } from '@/core/utils';
+var main_frames = 0;
+function drawBase(context) {
+    var current = getFramesPerSecond();
+    if (main_frames !== current)
+        main_frames = current;
+    context.save();
+    context.font = '16px Baloo Paaji';
+    context.fillStyle = '#fff';
+    context.lineWidth = 4;
+    // Draw FPS
+    var t = "FPS: ".concat(main_frames);
+    context.strokeText(t, 10, 50);
+    context.fillText(t, 10, 50);
+    context.restore();
+}
+;
+
+;// CONCATENATED MODULE: ./src/core/drawers/update.ts
 
 
 function updateHooks() {
     hook(BASE_HOOKS);
 }
 
-;// CONCATENATED MODULE: ./src/drawers/index.ts
+;// CONCATENATED MODULE: ./src/core/drawers/index.ts
 
 
 
+
+// if i'm tired and bad, i'm doing actual next shit array *clap clap*
+var DRAWERS = [
+    // Hooks
+    updateHooks,
+    updatePlayers,
+    updateCameraPosition,
+    // Actual draw things
+    drawBase,
+    drawOvenInfo,
+    drawTotemInfo,
+    drawPlayerInfo,
+    drawEmeraldInfo,
+    drawWindmillInfo,
+    drawExtractorInfo,
+];
+
+;// CONCATENATED MODULE: ./src/core/modules/gui.ts
+
+
+var gui = undefined;
+var settings = {
+    autofarm: {
+        e: false,
+        k: 'KeyU',
+        a: null,
+        w: false,
+        x: null,
+        xx: null,
+        y: null,
+        yy: null,
+        sy: null,
+        sx: null
+    }
+};
+function createGuify() {
+    var _a, _b;
+    if (gui)
+        return;
+    gui = new global_globalObject.guify((_a = {},
+        _a['open'] = true,
+        _a['title'] = 'Autofarm test',
+        _a['align'] = 'right',
+        _a));
+    gui.Register((_b = {},
+        _b['type'] = 'folder',
+        _b['label'] = 'Settings',
+        _b['open'] = false,
+        _b));
+    gui.Register([{
+            type: 'checkbox',
+            label: 'Start',
+            object: settings.autofarm,
+            property: 'e',
+            onChange: function (data) {
+                console.log('start change', data);
+            }
+        }, {
+            type: 'checkbox',
+            label: 'Autowater',
+            object: settings.autofarm,
+            property: 'w',
+            onChange: function (data) {
+                console.log('start change', data);
+            }
+        }, {
+            type: 'button',
+            label: 'Top farm',
+            action: function (data) {
+                if (!VARS.USER[PROPS.ALIVE] || !VARS.CLIENT[PROPS.SOCKET])
+                    return;
+                var player = VARS.WORLD[PROPS.FAST_UNITS][VARS.USER[PROPS.ID] * 1000];
+                if (player) {
+                    settings.autofarm.x = player['x'];
+                    settings.autofarm.y = player['y'];
+                }
+            }
+        }, {
+            type: 'button',
+            label: 'Bottom farm',
+            action: function (data) {
+                if (!VARS.USER[PROPS.ALIVE] || !VARS.CLIENT[PROPS.SOCKET])
+                    return;
+                var player = VARS.WORLD[PROPS.FAST_UNITS][VARS.USER[PROPS.ID] * 1000];
+                if (player) {
+                    settings.autofarm.xx = player['x'];
+                    settings.autofarm.yy = player['y'];
+                }
+            }
+        }, {
+            type: 'display',
+            label: 'X',
+            object: settings.autofarm,
+            property: 'x'
+        }, {
+            type: 'display',
+            label: 'Y',
+            object: settings.autofarm,
+            property: 'y'
+        }, {
+            type: 'display',
+            label: 'X1',
+            object: settings.autofarm,
+            property: 'xx'
+        }, {
+            type: 'display',
+            label: 'Y1',
+            object: settings.autofarm,
+            property: 'yy'
+        }], {
+        folder: 'Settings'
+    });
+}
 
 ;// CONCATENATED MODULE: ./src/index.ts
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -1174,55 +1391,30 @@ var __generator = (undefined && undefined.__generator) || function (thisArg, bod
 
 
 
-function hookAllProperties() {
-    var length = PROP_HOOKS.length;
-    for (var index = 0; index < length; index++) {
-        var hookProp = PROP_HOOKS[index];
-        if (hookProp && isArray(hookProp)) {
-            var variable = hookProp[0], property = hookProp[1], address = hookProp[2];
-            var hooked = getVarProperty(variable, property, address);
-            if (!!hooked && DEV)
-                globalObject.console.log("found ".concat(variable, ".").concat(property, " in address ").concat(address, " (").concat(hooked, ")"));
-        }
+function applyDraws() {
+    var len = DRAWERS.length;
+    for (var i = 0; i < len; i++) {
+        var draw_1 = DRAWERS[i];
+        if (typeof draw_1 !== 'function')
+            continue;
+        addToDraw(draw_1);
     }
 }
-var drawModules = [
-    // Hooks
-    updateHooks,
-    updatePlayers,
-    // Draw stuff
-    drawBase,
-    drawOvenInfo,
-    drawTotemInfo,
-    drawPlayerInfo,
-    drawEmeraldInfo,
-    drawWindmillInfo,
-    drawExtractorInfo,
-];
 function readyCallback() {
     var ready = get('READY');
-    var canvas = get('CANVAS');
-    if (!canvas)
-        set('CANVAS', globalObject.document.getElementById('game_canvas'));
     if (!ready && (VARS.USER !== undefined && VARS.GAME !== undefined && VARS.WORLD !== undefined && VARS.CLIENT !== undefined)) {
         set('READY', true);
-        set('CONTEXT', canvas === null || canvas === void 0 ? void 0 : canvas.getContext('2d'));
     }
     else
         return;
+    initializeCanvas();
     draw(0);
-    var moduleLength = drawModules.length;
-    for (var i = 0; i < moduleLength; i++) {
-        var module_1 = drawModules[i];
-        if (typeof module_1 !== 'function')
-            continue;
-        addToDraw(module_1);
-    }
+    applyDraws();
     hookAllProperties();
-    setInterval(function () {
-        console.log(VARS.WORLD[PROPS.PLAYERS]);
-        console.log(VARS.GAME[PROPS.CHEST_BUTTONS][INVENTORY_ID.AMETHYST]);
-    }, 1000);
+    createGuify();
+    // setInterval(() => {
+    //   console.log(OBJ_PROPS);
+    // }, 1000);
     console.log('ready', VARS, PROPS);
 }
 function waitUntilReady() {
@@ -1251,11 +1443,13 @@ function bootstrap() {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    if (false) {}
                     hook(BASE_HOOKS);
                     return [4 /*yield*/, waitUntilReady()];
                 case 1:
                     _a.sent();
-                    return [2 /*return*/];
+                    _a.label = 2;
+                case 2: return [2 /*return*/];
             }
         });
     });

@@ -5,6 +5,8 @@ import { minify } from 'terser';
 import { DECODER_CHECKSUM_RANDOM, DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_TEMPLATE, EVAL_TEMPLATE } from "./templates";
 import { checksum, encodeChars as encodeString } from './utils';
 
+import obfuscator from 'javascript-obfuscator';
+
 console.log(DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_CHECKSUM_RANDOM);
 
 interface ASTNode {
@@ -14,6 +16,8 @@ interface ASTNode {
 
 async function obfuscate(input: string, output: string) {
   const base = readFileSync(input, 'utf-8');
+  // const input_obf = obfuscator.obfuscate(base, {}).getObfuscatedCode();
+
   const ast = parse(base, { ecmaVersion: 5 });
 
   const stringMap = new Map();
@@ -134,10 +138,10 @@ async function obfuscate(input: string, output: string) {
   const computedChecksum = checksum(JSON.stringify(PROPERTIES) + JSON.stringify(STRINGS) + obfuscated);
 
   let bootstrap: any = await minify(`
-    function AMETHYST_BOOTSTRAP(checksum, random){
+    (function AMETHYST_BOOTSTRAP(checksum, random){
       ${DECODER_TEMPLATE(built, built_expire, computedChecksum, PROPERTIES, STRINGS)}
       ${obfuscated}
-    }
+    })(${computedChecksum}, ${DECODER_CHECKSUM_RANDOM});
     `,
     {
       compress: {
@@ -163,10 +167,66 @@ async function obfuscate(input: string, output: string) {
     throw bootstrap.error;
   }
 
-  bootstrap = bootstrap.code;
+  bootstrap = obfuscator.obfuscate(bootstrap.code, {
+    "compact": true,
+    "selfDefending": false,
+    "disableConsoleOutput": true,
+    "debugProtection": true,
+    "debugProtectionInterval": 500,
+    "splitStrings": true,
+    "splitStringsChunkLength": 1,
+    "splitStringsChunkLengthEnabled": true,
+    "stringArray": true,
+    "stringArrayRotate": true,
+    "stringArrayRotateEnabled": true,
+    "stringArrayShuffle": true,
+    "stringArrayShuffleEnabled": true,
+    "simplify": true,
+    "stringArrayThreshold": 1,
+    "stringArrayThresholdEnabled": true,
+    "stringArrayIndexesType": ["hexadecimal-number"],
+    "stringArrayIndexShift": true,
+    "stringArrayCallsTransform": true,
+    "stringArrayCallsTransformThreshold": 1,
+    "stringArrayEncoding": ["rc4"],
+    "stringArrayEncodingEnabled": true,
+    "stringArrayWrappersCount": 1,
+    "stringArrayWrappersChainedCalls": true,
+    "stringArrayWrappersParametersMaxCount": 2,
+    "stringArrayWrappersType": "function",
+    "numbersToExpressions": true,
+    "sourceMap": false,
+    "sourceMapMode": "separate",
+    "sourceMapBaseUrl": "",
+    "sourceMapFileName": "",
+    "domainLock": [],
+    "domainLockRedirectUrl": "about:blank",
+    "domainLockEnabled": true,
+    "forceTransformStrings": [],
+    "reservedNames": [],
+    "reservedStrings": [],
+    "seed": 315153135,
+    "controlFlowFlatteningThreshold": 0.75,
+    "controlFlowFlattening": true,
+    "deadCodeInjectionThreshold": 0.5,
+    "deadCodeInjection": true,
+    "unicodeEscapeSequence": true,
+    "target": "browser",
+    "identifierNamesGenerator": "mangled-shuffled",
+    "transformObjectKeys": true,
+    "ignoreImports": false,
+    "config": "",
+    "exclude": [],
+    "identifierNamesCache": null,
+    "inputFileName": "",
+    "log": false,
+    "sourceMapSourcesMode": "sources-content"
+  }).getObfuscatedCode();
 
-  const evalx = await EVAL_TEMPLATE(bootstrap, computedChecksum, DECODER_CHECKSUM_RANDOM);
-  writeFileSync(output, evalx);
+  // const evalx = await EVAL_TEMPLATE(bootstrap, computedChecksum, DECODER_CHECKSUM_RANDOM);
+  writeFileSync(output, `window.__AMETHYST_COMPILED__ = true;
+${bootstrap}`
+  );
 }
 
-obfuscate('./source.js', './test.jsx');
+obfuscate('./source.js', './test.js');
