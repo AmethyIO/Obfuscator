@@ -15,14 +15,15 @@ interface ASTNode {
 }
 
 // ᐃΔΔΔᐃᐃᐃばれ
-const underscoreIdentifiers = generateAmethystVariations('__________v_i_r_t_________', 2000, 1, 12);
+const underscoreIdentifiers = generateAmethystVariations('__ﱆﱆﱆﱆﱆﱆ_v_r_u_a_', 5000, 1, 19);
+
+console.log(underscoreIdentifiers);
 
 async function obfuscate(input: string, output: string) {
   const base = readFileSync(input, 'utf-8');
 
-  // const ast = parse(base, { ecmaVersion: 5 });
   const ast = parse(obfuscator.obfuscate(base, {
-    "compact": true,
+    // "compact": true,
     "selfDefending": true,
     // "disableConsoleOutput": true,
     "debugProtection": true,
@@ -35,7 +36,11 @@ async function obfuscate(input: string, output: string) {
     "stringArrayRotateEnabled": true,
     "stringArrayShuffle": true,
     "stringArrayShuffleEnabled": true,
-    "simplify": true,
+    "seed": Date.now() / 1000,
+    "deadCodeInjectionThreshold": 0.5,
+    "deadCodeInjection": true,
+    "unicodeEscapeSequence": true,
+    "target": "browser",
     // "stringArrayThreshold": 1,
     // "stringArrayThresholdEnabled": true,
     // "stringArrayIndexesType": ["hexadecimal-number"],
@@ -48,17 +53,8 @@ async function obfuscate(input: string, output: string) {
     // "stringArrayWrappersChainedCalls": true,
     // "stringArrayWrappersParametersMaxCount": 16,
     // "stringArrayWrappersType": "function",
-    "numbersToExpressions": true,
-    "seed": Date.now() / 1000,
-    "controlFlowFlatteningThreshold": 0.75,
-    "controlFlowFlattening": true,
-    "deadCodeInjectionThreshold": 0.5,
-    "deadCodeInjection": true,
-    "unicodeEscapeSequence": true,
-    "identifierNamesDictionary": underscoreIdentifiers,
-    "identifiersDictionary": underscoreIdentifiers,
-    "target": "browser",
-    "identifierNamesGenerator": "dictionary",
+    // "identifierNamesGenerator": "mangled",
+    "identifierNamesGenerator": 'mangled-shuffled',
     "transformObjectKeys": true,
     "ignoreImports": false,
     "log": false,
@@ -210,7 +206,7 @@ async function obfuscate(input: string, output: string) {
 
   traverse(ast);
 
-  const obfuscated = generate(ast, {
+  let obfuscated = generate(ast, {
     format: {
       hexadecimal: true,
     }
@@ -228,6 +224,7 @@ async function obfuscate(input: string, output: string) {
     })(${computedChecksum}, ${DECODER_CHECKSUM_RANDOM});
     `,
     {
+      mangle: true,
       compress: {
         loops: true,
         booleans: true,
@@ -240,7 +237,7 @@ async function obfuscate(input: string, output: string) {
         keep_infinity: true,
         // drop_console: true,
         collapse_vars: true,
-        unused: true,
+        // unused: true,
         booleans_as_integers: true,
         conditionals: true,
         if_return: true,
@@ -256,9 +253,36 @@ async function obfuscate(input: string, output: string) {
   bootstrap = bootstrap.code;
 
   // const evalx = await EVAL_TEMPLATE(bootstrap, computedChecksum, DECODER_CHECKSUM_RANDOM);
-  writeFileSync(output, `window.__AMETHYST_COMPILED__ = true;
-${bootstrap}`
-  );
+  writeFileSync(output, `/**
+  * @copyright Amethyst
+  * @license private (Personal Use License)
+  * @compiled ${built} 
+  **/
+
+// AMETHYST_DATA_ACCESS: $machineId;$licenseKey;$game
+window.__AMETHYST_COMPILED__ = true;(function AMETHYST_MODULE(){${obfuscator.obfuscate(bootstrap, {
+    // "compact": true,
+    "selfDefending": true,
+    // "numbersToExpressions": false,
+    "seed": Date.now() / 100,
+    "unicodeEscapeSequence": true,
+    // "splitStrings": true,
+    // "splitStringsChunkLength": 1,
+    // "splitStringsChunkLengthEnabled": true,
+    // "stringArray": true,
+    // "stringArrayRotate": true,
+    // "stringArrayRotateEnabled": true,
+    // "stringArrayShuffle": true,
+    // "stringArrayShuffleEnabled": true,
+    "target": "browser",
+    "identifierNamesDictionary": underscoreIdentifiers,
+    "identifiersDictionary": underscoreIdentifiers,
+    "identifierNamesGenerator": "dictionary",
+    "transformObjectKeys": true,
+    "ignoreImports": false,
+    "log": false,
+    "sourceMapSourcesMode": "sources-content"
+  }).getObfuscatedCode()}})();`);
 }
 
 obfuscate('./source.js', './test.js');

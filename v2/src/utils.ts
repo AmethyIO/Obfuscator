@@ -41,7 +41,10 @@ export const generateRandomLength = (minLength: number, maxLength: number): numb
 
 export const generateAmethystVariations = (base: string, count: number, minLength: number, maxLength: number): string[] => {
   const variations = new Set<string>();
+  let index = 0;
+
   while (variations.size < count) {
+    index++;
     let variation = shuffleString(base);
     const randomLength = generateRandomLength(minLength, maxLength);
 
@@ -54,6 +57,7 @@ export const generateAmethystVariations = (base: string, count: number, minLengt
     }
 
     if (!variations.has(variation)) {
+      // variations.add(variation + index);
       variations.add(variation);
     }
   }
