@@ -2,8 +2,8 @@ import { parse } from "acorn";
 import { readFileSync, writeFileSync } from "fs";
 import { generate } from 'escodegen';
 import { minify } from 'terser';
-import { DECODER_CHECKSUM_RANDOM, DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_TEMPLATE, EVAL_TEMPLATE } from "./templates";
-import { checksum, encodeChars as encodeString } from './utils';
+import { DECODER_CHECKSUM_RANDOM, DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_TEMPLATE } from "./templates";
+import { checksum, encodeChars as encodeString, generateAmethystVariations } from './utils';
 
 import obfuscator from 'javascript-obfuscator';
 
@@ -14,17 +14,64 @@ interface ASTNode {
   [key: string]: any;
 }
 
+// ᐃΔΔΔᐃᐃᐃばれ
+const underscoreIdentifiers = generateAmethystVariations('__________v_i_r_t_________', 2000, 1, 12);
+
 async function obfuscate(input: string, output: string) {
   const base = readFileSync(input, 'utf-8');
-  // const input_obf = obfuscator.obfuscate(base, {}).getObfuscatedCode();
 
-  const ast = parse(base, { ecmaVersion: 5 });
+  // const ast = parse(base, { ecmaVersion: 5 });
+  const ast = parse(obfuscator.obfuscate(base, {
+    "compact": true,
+    "selfDefending": true,
+    // "disableConsoleOutput": true,
+    "debugProtection": true,
+    "debugProtectionInterval": 500,
+    "splitStrings": true,
+    "splitStringsChunkLength": 1,
+    "splitStringsChunkLengthEnabled": true,
+    "stringArray": true,
+    "stringArrayRotate": true,
+    "stringArrayRotateEnabled": true,
+    "stringArrayShuffle": true,
+    "stringArrayShuffleEnabled": true,
+    "simplify": true,
+    // "stringArrayThreshold": 1,
+    // "stringArrayThresholdEnabled": true,
+    // "stringArrayIndexesType": ["hexadecimal-number"],
+    // "stringArrayIndexShift": true,
+    // "stringArrayCallsTransform": true,
+    // "stringArrayCallsTransformThreshold": 1,
+    // "stringArrayEncoding": ["rc4"],
+    // "stringArrayEncodingEnabled": true,
+    // "stringArrayWrappersCount": 1,
+    // "stringArrayWrappersChainedCalls": true,
+    // "stringArrayWrappersParametersMaxCount": 16,
+    // "stringArrayWrappersType": "function",
+    "numbersToExpressions": true,
+    "seed": Date.now() / 1000,
+    "controlFlowFlatteningThreshold": 0.75,
+    "controlFlowFlattening": true,
+    "deadCodeInjectionThreshold": 0.5,
+    "deadCodeInjection": true,
+    "unicodeEscapeSequence": true,
+    "identifierNamesDictionary": underscoreIdentifiers,
+    "identifiersDictionary": underscoreIdentifiers,
+    "target": "browser",
+    "identifierNamesGenerator": "dictionary",
+    "transformObjectKeys": true,
+    "ignoreImports": false,
+    "log": false,
+    "sourceMapSourcesMode": "sources-content"
+  }).getObfuscatedCode(), { ecmaVersion: 5 });
 
   const stringMap = new Map();
   const propertyMap = new Map();
+  const numberMap = new Map();
 
   const STRINGS: number[][] = [];
   const PROPERTIES: number[][] = [];
+  const NUMBERS: number[] = [];
 
   const traverse = (node: ASTNode | ASTNode[] | null) => {
     if (!node) return;
@@ -74,6 +121,23 @@ async function obfuscate(input: string, output: string) {
             value: stringMap.get(stringValue),
             raw: stringMap.get(stringValue)!.toString()
           };
+        } else if (node.type === 'Literal' && typeof node.value === 'number') {
+          const numberValue = node.value;
+          if (!numberMap.has(numberValue)) {
+            NUMBERS.push(numberValue);
+            numberMap.set(numberValue, NUMBERS.length - 1);
+          }
+          node.type = 'MemberExpression';
+          node.computed = true;
+          node.object = {
+            type: 'Identifier',
+            name: '__COMPUTED_NUMBERS__'
+          };
+          node.property = {
+            type: 'Literal',
+            value: numberMap.get(numberValue),
+            raw: numberMap.get(numberValue)!.toString()
+          };
         } else if (node.type === 'Property' && node.key.type === 'Literal' && typeof node.key.value === 'string') {
           // Handle computed property keys in object literals
           const propertyName = node.key.value;
@@ -117,6 +181,26 @@ async function obfuscate(input: string, output: string) {
               raw: stringMap.get(stringValue)!.toString()
             }
           };
+        } else if (node.type === 'Property' && node.value.type === 'Literal' && typeof node.value.value === 'number') {
+          // Handle number values in object literals
+          const numberValue = node.value.value;
+          if (!numberMap.has(numberValue)) {
+            NUMBERS.push(numberValue);
+            numberMap.set(numberValue, NUMBERS.length - 1);
+          }
+          node.value = {
+            type: 'MemberExpression',
+            computed: true,
+            object: {
+              type: 'Identifier',
+              name: '__COMPUTED_NUMBERS__'
+            },
+            property: {
+              type: 'Literal',
+              value: numberMap.get(numberValue),
+              raw: numberMap.get(numberValue)!.toString()
+            }
+          };
         }
 
         traverse(childNode);
@@ -135,11 +219,11 @@ async function obfuscate(input: string, output: string) {
   const built = Date.now();
   const built_expire = built + 259200000000;
 
-  const computedChecksum = checksum(JSON.stringify(PROPERTIES) + JSON.stringify(STRINGS) + obfuscated);
+  const computedChecksum = checksum(JSON.stringify(PROPERTIES) + JSON.stringify(STRINGS) + JSON.stringify(NUMBERS) + obfuscated);
 
   let bootstrap: any = await minify(`
     (function AMETHYST_BOOTSTRAP(checksum, random){
-      ${DECODER_TEMPLATE(built, built_expire, computedChecksum, PROPERTIES, STRINGS)}
+      ${DECODER_TEMPLATE(built, built_expire, computedChecksum, PROPERTIES, STRINGS, NUMBERS)}
       ${obfuscated}
     })(${computedChecksum}, ${DECODER_CHECKSUM_RANDOM});
     `,
@@ -154,7 +238,7 @@ async function obfuscate(input: string, output: string) {
         hoist_vars: true,
         keep_fnames: false,
         keep_infinity: true,
-        drop_console: true,
+        // drop_console: true,
         collapse_vars: true,
         unused: true,
         booleans_as_integers: true,
@@ -167,47 +251,9 @@ async function obfuscate(input: string, output: string) {
     throw bootstrap.error;
   }
 
-  bootstrap = obfuscator.obfuscate(bootstrap.code, {
-    "compact": true,
-    "selfDefending": false,
-    "disableConsoleOutput": true,
-    "debugProtection": true,
-    "debugProtectionInterval": 500,
-    "splitStrings": true,
-    "splitStringsChunkLength": 1,
-    "splitStringsChunkLengthEnabled": true,
-    "stringArray": true,
-    "stringArrayRotate": true,
-    "stringArrayRotateEnabled": true,
-    "stringArrayShuffle": true,
-    "stringArrayShuffleEnabled": true,
-    "simplify": true,
-    "stringArrayThreshold": 1,
-    "stringArrayThresholdEnabled": true,
-    "stringArrayIndexesType": ["hexadecimal-number"],
-    "stringArrayIndexShift": true,
-    "stringArrayCallsTransform": true,
-    "stringArrayCallsTransformThreshold": 1,
-    "stringArrayEncoding": ["rc4"],
-    "stringArrayEncodingEnabled": true,
-    "stringArrayWrappersCount": 1,
-    "stringArrayWrappersChainedCalls": true,
-    "stringArrayWrappersParametersMaxCount": 2,
-    "stringArrayWrappersType": "function",
-    "numbersToExpressions": true,
-    "seed": Date.now() / 1000,
-    "controlFlowFlatteningThreshold": 0.75,
-    "controlFlowFlattening": true,
-    "deadCodeInjectionThreshold": 0.5,
-    "deadCodeInjection": true,
-    "unicodeEscapeSequence": true,
-    "target": "browser",
-    "identifierNamesGenerator": "mangled-shuffled",
-    "transformObjectKeys": true,
-    "ignoreImports": false,
-    "log": false,
-    "sourceMapSourcesMode": "sources-content"
-  }).getObfuscatedCode();
+  console.log(underscoreIdentifiers);
+
+  bootstrap = bootstrap.code;
 
   // const evalx = await EVAL_TEMPLATE(bootstrap, computedChecksum, DECODER_CHECKSUM_RANDOM);
   writeFileSync(output, `window.__AMETHYST_COMPILED__ = true;

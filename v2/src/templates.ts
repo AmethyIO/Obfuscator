@@ -4,7 +4,7 @@ export const DECODER_SHIFT_1: number = getRandomInt(4, 12);
 export const DECODER_SHIFT_2: number = getRandomInt(12, 24);
 export const DECODER_CHECKSUM_RANDOM: number = getRandomInt(999, 99999);
 
-export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: number, props: number[][], strings: number[][]): string => {
+export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: number, props: number[][], strings: number[][], numbers: number[]): string => {
   const template = `
   var globalobj = window;
 
@@ -15,6 +15,7 @@ export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: 
 
   var __ENCODED_PROPS__ = ${JSON.stringify(props)};
   var __ENCODED_STRINGS__ = ${JSON.stringify(strings)};
+  var __COMPUTED_NUMBERS__ = ${JSON.stringify(numbers)};
 
   // Escaped strings decoder
   function decodeEscapedString(encodedStr) {
