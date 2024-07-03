@@ -3,11 +3,9 @@ import { readFileSync, writeFileSync } from "fs";
 import { generate } from 'escodegen';
 import { minify } from 'terser';
 import { DECODER_CHECKSUM_RANDOM, DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_TEMPLATE } from "./templates";
-import { checksum, encodeChars as encodeString, generateAmethystVariations } from './utils';
+import { checksum, encodeChars as encodeString, generateVariations } from './utils';
 
 import obfuscator from 'javascript-obfuscator';
-
-console.log(DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_CHECKSUM_RANDOM);
 
 interface ASTNode {
   type: string;
@@ -15,19 +13,22 @@ interface ASTNode {
 }
 
 // ᐃΔΔΔᐃᐃᐃばれ
-const underscoreIdentifiers = generateAmethystVariations('__ﱆﱆﱆﱆﱆﱆ_v_r_u_a_', 5000, 1, 19);
+// const underscoreIdentifiers = generateAmethystVariations('__ﱆﱆﱆﱆﱆﱆ_v_r_u_a_', 5000, 1, 19);
+const underscoreIdentifiers = generateVariations('$_$_Δ_ᐃ_ﱆﱆﱆﱆﱆﱆ', 5000, 1, 26);
 
 console.log(underscoreIdentifiers);
+
+console.log(DECODER_SHIFT_1, DECODER_SHIFT_2, DECODER_CHECKSUM_RANDOM);
 
 async function obfuscate(input: string, output: string) {
   const base = readFileSync(input, 'utf-8');
 
   const ast = parse(obfuscator.obfuscate(base, {
     // "compact": true,
-    "selfDefending": true,
+    // "selfDefending": true,
     // "disableConsoleOutput": true,
-    "debugProtection": true,
-    "debugProtectionInterval": 500,
+    // "debugProtection": true,
+    // "debugProtectionInterval": 500,
     "splitStrings": true,
     "splitStringsChunkLength": 1,
     "splitStringsChunkLengthEnabled": true,
@@ -248,8 +249,6 @@ async function obfuscate(input: string, output: string) {
     throw bootstrap.error;
   }
 
-  console.log(underscoreIdentifiers);
-
   bootstrap = bootstrap.code;
 
   // const evalx = await EVAL_TEMPLATE(bootstrap, computedChecksum, DECODER_CHECKSUM_RANDOM);
@@ -259,10 +258,10 @@ async function obfuscate(input: string, output: string) {
   * @compiled ${built} 
   **/
 
-// AMETHYST_DATA_ACCESS: $machineId;$licenseKey;$game
+// AMETHYST_DATA_ACCESS: $machineId;$licenseKey
 window.__AMETHYST_COMPILED__ = true;(function AMETHYST_MODULE(){${obfuscator.obfuscate(bootstrap, {
     // "compact": true,
-    "selfDefending": true,
+    // "selfDefending": true,
     // "numbersToExpressions": false,
     "seed": Date.now() / 100,
     "unicodeEscapeSequence": true,

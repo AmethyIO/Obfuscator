@@ -1,31 +1,5 @@
 import figlet from "figlet";
 
-const cursedChars = [
-  ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(0x03B1 + i)), // Greek letters α-ω
-  ...Array.from({ length: 32 }, (_, i) => String.fromCharCode(0x0410 + i)), // Russian letters А-Я
-  // ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(0x1F00 + i))  // Additional characters if needed
-];
-
-export function generateCursedIdentifier(length: number): string {
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += cursedChars[Math.floor(Math.random() * cursedChars.length)];
-  }
-  return result;
-}
-
-export const generateCursedIdentifiers = (length: number, count: number): string[] => {
-  const identifiers = new Set<string>();
-  while (identifiers.size < count) {
-    let identifier = '';
-    for (let i = 0; i < length; i++) {
-      identifier += cursedChars[Math.floor(Math.random() * cursedChars.length)];
-    }
-    identifiers.add(identifier);
-  }
-  return Array.from(identifiers);
-}
-
 export const shuffleString = (str: string): string => {
   const arr = str.split('');
   for (let i = arr.length - 1; i > 0; i--) {
@@ -39,7 +13,7 @@ export const generateRandomLength = (minLength: number, maxLength: number): numb
   return Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
 };
 
-export const generateAmethystVariations = (base: string, count: number, minLength: number, maxLength: number): string[] => {
+export const generateVariations = (base: string, count: number, minLength: number, maxLength: number): string[] => {
   const variations = new Set<string>();
   let index = 0;
 
@@ -49,7 +23,7 @@ export const generateAmethystVariations = (base: string, count: number, minLengt
     const randomLength = generateRandomLength(minLength, maxLength);
 
     if (variation.length > randomLength) {
-      variation = variation.substring(0, randomLength);
+      variation = variation.substring(0, randomLength).replace(/\$/g, '_');
     } else {
       while (variation.length < randomLength) {
         variation += shuffleString(base).substring(0, randomLength - variation.length);
@@ -57,8 +31,8 @@ export const generateAmethystVariations = (base: string, count: number, minLengt
     }
 
     if (!variations.has(variation)) {
-      // variations.add(variation + index);
-      variations.add(variation);
+      // variations.add(variation + variation.length + 'ﾠ︈︈');
+      variations.add('amethyst_' + variation);
     }
   }
   return Array.from(variations);

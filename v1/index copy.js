@@ -296,7 +296,7 @@ for (var i = 0; i < STRINGS_L; i++) __ENCODED_STRINGS__[i] = DECODE(udon, __ENCO
 
   // Encode as a char code
   // const chars = [];
-  // const c_plus = ~~(Math.random() * 5) + 1;
+  // const c_plus = ~~(Math.random() ) + 1;
   // const c_shift = ~~(Math.random() * 4) + 1;
 
   // for (let i = 0; i < evalString.length; i++) {
