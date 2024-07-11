@@ -1,5 +1,58 @@
 import figlet from "figlet";
 
+const base24Chars: string = '0123456789ABCDEFGHIJKLMN';
+
+function decimalToBase24(num: number) {
+  let base24 = '';
+  while (num > 0) {
+    let remainder = num % 24;
+    base24 = base24Chars[remainder] + base24;
+    num = ~~(num / 24);
+  }
+  return base24 || '0';
+}
+
+export function caesarShift(str: string, amount: number) {
+  if (amount < 0)
+    return caesarShift(str, amount + 26);
+
+  let output = "";
+  for (let i = 0; i < str.length; i++) {
+    let c = str[i];
+    if (c.match(/[a-z]/i)) {
+      const code = str.charCodeAt(i);
+      if (code >= 65 && code <= 90) {
+        c = String.fromCharCode(((code - 65 + amount) % 26) + 65);
+      } else if (code >= 97 && code <= 122) {
+        c = String.fromCharCode(((code - 97 + amount) % 26) + 97);
+      }
+    }
+    output += c;
+  }
+  return output;
+}
+
+export const containsSpecialUnicodeOrEmoji = (str: string) => [...str].some(char => char.charCodeAt(0) > 127);
+
+export function encrypt(str: string): string {
+  let encrypted = '';
+
+  for (let i = 0; i < str.length; i++) {
+    let ascii = str.charCodeAt(i);
+
+    // Ignore non-standard Unicode characters (emojis, etc.)
+    if (ascii <= 0xFFFF) {  // Basic Multilingual Plane (BMP) characters only
+      let base24 = decimalToBase24(ascii);
+      base24 = base24.padStart(2, '0');
+      encrypted += base24;
+    }
+  }
+
+  console.log(encrypted);
+
+  return encrypted;
+}
+
 export const shuffleString = (str: string): string => {
   const arr = str.split('');
   for (let i = arr.length - 1; i > 0; i--) {
@@ -31,8 +84,8 @@ export const generateVariations = (base: string, count: number, minLength: numbe
     }
 
     if (!variations.has(variation)) {
-      // variations.add(variation + variation.length + 'ﾠ︈︈');
-      variations.add('amethyst_' + variation);
+      variations.add(variation);
+      // variations.add('amethyst_' + variation);
     }
   }
   return Array.from(variations);
@@ -64,15 +117,19 @@ export function checksum(str: string): number {
 }
 
 export const encodeChars = (str: string, shift: number, shift2: number): number[] => {
+  str = encrypt(str);
+
   const length = str.length;
   const encoded = [];
 
   for (let index = 0; index < length; index++) {
     const char = str.charCodeAt(index);
-    encoded.push(0x0 | ((char << shift) | shift2));  // Push as hexadecimal integer
+    if (char <= 0xFFFF) {  // Basic Multilingual Plane (BMP) characters only
+      encoded.push(0x0 | ((char << shift) | shift2));
+    }
   }
 
-  encoded.push(0x0 | (encoded.length + shift2));  // Push length + shift2 as hexadecimal integer
+  encoded.push(0x0 | (encoded.length + shift2));
 
   return encoded;
 };

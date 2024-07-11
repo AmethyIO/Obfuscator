@@ -1,10 +1,10 @@
 import { encodeStringLiteral, generateLogo, getRandomInt } from "./utils";
 
-export const DECODER_SHIFT_1: number = getRandomInt(4, 12);
-export const DECODER_SHIFT_2: number = getRandomInt(12, 24);
+export const DECODER_SHIFT_1: number = getRandomInt(2, 8);
+export const DECODER_SHIFT_2: number = getRandomInt(6, 16);
 export const DECODER_CHECKSUM_RANDOM: number = getRandomInt(999, 99999);
 
-export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: number, props: number[][], strings: number[][], numbers: number[]): string => {
+export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: number, props: number[][], strings: number[][], numbers: number[], unicode: string[]): string => {
   const template = `
   var globalobj = window;
 
@@ -14,6 +14,7 @@ export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: 
   var SHIFT_2 = ${DECODER_SHIFT_2};
 
   var __ENCODED_PROPS__ = ${JSON.stringify(props)};
+  var __UNICODE_STRINGS__ = ${JSON.stringify(unicode)};
   var __ENCODED_STRINGS__ = ${JSON.stringify(strings)};
   var __COMPUTED_NUMBERS__ = ${JSON.stringify(numbers)};
 
@@ -142,6 +143,26 @@ export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: 
     globalobj[__ONUNLOAD__] = DESTROY_HELPERS;
   }
 
+  var base24Chars = '0123456789ABCDEFGHIJKLMN';
+
+  function base24ToDecimal(base24) {
+    var num = 0;
+    for (var i = 0; i < base24.length; i++) {
+      num = num * 24 + base24Chars.indexOf(base24[i]);
+    }
+    return num;
+  }
+
+  function decrypt(encrypted) {
+    var decrypted = '';
+    for (var i = 0; i < encrypted.length; i += 2) {
+      var base24 = encrypted.substring(i, i + 2);
+      var ascii = base24ToDecimal(base24);
+      decrypted += globalobj[__STRING__][__FROMCHARCODE__](ascii);
+    }
+    return decrypted;
+  }
+
   function DECODE(bytes) {
     if (!OK) throw 1;
 
@@ -155,11 +176,8 @@ export const DECODER_TEMPLATE = (built: number, built_expiry: number, checksum: 
         throw 2;
       }
     }
-
-    if (STRING[__LENGTH__] === REAL_LENGTH)
-      return STRING;
-
-    return null;
+    
+    return decrypt(STRING);
   }
 
   var PROPS_L = __ENCODED_PROPS__[__LENGTH__];
